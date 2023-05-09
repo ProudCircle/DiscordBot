@@ -86,7 +86,7 @@ def setup_logger(stdout_level=logging.INFO):
 
 
 # Startup discord bot
-async def main():
+async def main(token: str):
     # Bot Meta-data Setup
     bot_intents = discord.Intents.default()
     bot_intents.message_content = True
@@ -103,7 +103,8 @@ async def main():
 
     # Start the discord bot
     bot = ProudCircleDiscordBot(intents=bot_intents, command_prefix=bot_pfx, description=bot_description)
-    token = local.LOCAL_DATA.config.get_setting("bot_token")
+    if token is None:
+        token = local.LOCAL_DATA.config.get_setting("bot_token")
     if token is None:
         logging.critical("No bot token found")
         return
@@ -131,6 +132,6 @@ if __name__ == "__main__":
     local.LOCAL_DATA = local.LocalData()
 
     print("Starting Proud Circle Bot...")
-    asyncio.run(main())
+    asyncio.run(main(args.token))
 
     logging.info("Script finished")
