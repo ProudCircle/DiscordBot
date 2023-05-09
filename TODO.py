@@ -7,3 +7,4 @@
 # TODO: Create custom logging solution
 # TODO: Add argument to disable cacheing
 # TODO: Add argument to change cache entry lifetime
+# TODO: Fix invalid logic (main.py: 129)
