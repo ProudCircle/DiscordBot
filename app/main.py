@@ -123,8 +123,10 @@ if __name__ == "__main__":
     else:
         setup_logger()
 
-    if args.token is not None:
-        local.LOCAL_DATA.config.set_setting("bot_token", args.token)
+    # if args.token is not None:
+    #     local.LOCAL_DATA.config.set_setting("bot_token", args.token)
+    # At this point, localdata has not been initialized and therefore does not exist
+    # TODO: Fix this
 
     local.LOCAL_DATA = local.LocalData()
 
