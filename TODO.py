@@ -8,3 +8,5 @@
 # TODO: Add argument to disable cacheing
 # TODO: Add argument to change cache entry lifetime
 # TODO: Fix invalid logic (main.py: 129)
+# TODO: Add different logging outputs (cache, network, etc) and make it configurable)
+# TODO: Add type hints for local.py
