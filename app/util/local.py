@@ -1,4 +1,6 @@
 import os
+from socket import socket
+
 import toml
 import time
 import json
@@ -6,22 +8,22 @@ import sqlite3
 import logging
 
 from os import path
-from typing import List
+from typing import List, Dict, Any, Tuple, Union
 from datetime import datetime
 
-DATA_FOLDER = "../data"
-LOGS_FOLDER = path.join(DATA_FOLDER, "logs")
-IMAGES_FOLDER = path.join(DATA_FOLDER, "images")
-FONTS_FOLDER = path.join(DATA_FOLDER, "fonts")
-DATABASE_FOLDER = path.join(DATA_FOLDER, "db")
-DATABASE_PATH = path.join(DATABASE_FOLDER, "proudcircle.db")
-CONFIG_PATH = path.join(DATA_FOLDER, "settings.conf")
-CACHE_PATH = path.join(DATA_FOLDER, "uuid.cache")
-CACHE_LIFETIME_SECONDS = 300
-DIVISION_DATA = path.join(DATA_FOLDER, "xp_divisions_reqs.json")
-WEEKLY_POINTS_DATA = path.join(DATA_FOLDER, "weekly_points_reqs.json")
+# Variables located at the bottom of this file
+DATA_FOLDER: str = "../data"
+LOGS_FOLDER: str = path.join(DATA_FOLDER, "logs")
+IMAGES_FOLDER: str = path.join(DATA_FOLDER, "images")
+FONTS_FOLDER: str = path.join(DATA_FOLDER, "fonts")
+DATABASE_FOLDER: str = path.join(DATA_FOLDER, "db")
+DATABASE_PATH: str = path.join(DATABASE_FOLDER, "proudcircle.db")
+CONFIG_PATH: str = path.join(DATA_FOLDER, "settings.conf")
+CACHE_PATH: str = path.join(DATA_FOLDER, "uuid.cache")
+CACHE_LIFETIME_SECONDS: int = 300
+DIVISION_DATA: str = path.join(DATA_FOLDER, "xp_divisions_reqs.json")
+WEEKLY_POINTS_DATA: str = path.join(DATA_FOLDER, "weekly_points_reqs.json")
 
-LOCAL_DATA = None
 PROGRAM_VARS = {}
 
 
@@ -33,30 +35,12 @@ def setup():
 		os.mkdir(LOGS_FOLDER)
 
 
-class LocalData:
-	def __init__(self):
-		self.gexp_db = GexpDatabase()
-		self.bot_extensions = []
-		self.config = TomlConfig(CONFIG_PATH)
-		self.uuid_cache = CacheDatabase(CACHE_PATH)
-		self.discord_link = DiscordLink(self.gexp_db.cursor)
-		self.xp_division_data = XpDivisionData()
-
-	def get_all_extensions(self) -> List[str]:
-		self.bot_extensions = []
-		for file in os.listdir('./extensions'):
-			if file.endswith('.py'):
-				self.bot_extensions.append(f"extensions.{file.replace('.py', '')}")
-		logging.debug(f"Found {len(self.bot_extensions)} extension(s): {[f for f in self.bot_extensions]}")
-		return self.bot_extensions
-
-
 class GexpDatabase:
 	def __init__(self):
 		logging.info("Loading GEXP Database...")
 		self.connection = sqlite3.connect(DATABASE_PATH)
 		self.cursor = self.connection.cursor()
-		self.tables = []
+		self.tables: List[str] = []
 		self.update_tables()
 		logging.debug("Complete!")
 
@@ -67,12 +51,12 @@ class GexpDatabase:
 
 
 class TomlConfig:
-	def __init__(self, config_path, default_config=None):
+	def __init__(self, config_path: str, default_config: Dict[Any] = None):
 		logging.info("Loading Config...")
 		if default_config is None:
 			default_config = {'bot': ['token']}
-		self.path = config_path
-		self.default_config = default_config
+		self.path: str = config_path
+		self.default_config: Dict[Any] = default_config
 		if os.path.exists(config_path):
 			self.config = toml.load(config_path)
 		else:
@@ -112,23 +96,30 @@ class TomlConfig:
 
 
 class _CacheEntry:
-	def __init__(self, raw_result, lifetime_seconds=CACHE_LIFETIME_SECONDS):
+	def __init__(
+			self,
+			raw_result: Union[Tuple[str, str, int], tuple] = (),
+			lifetime_seconds: int = CACHE_LIFETIME_SECONDS):
 		self._raw_result = raw_result
+		self.is_alive: bool = False
+		self.uuid: str | None = None
+		self.name: str | None = None
+		self.born: int | None = None
+
 		if raw_result is None:
-			self.is_alive = False
-			self.uuid = None
-			self.name = None
-			self.born = None
 			return
 
 		self.uuid = raw_result[0]
 		self.name = raw_result[1]
-		self.born = raw_result[2]
+		self.born = int(raw_result[2])
 
 		if (int(time.time()) - self.born) > lifetime_seconds:
 			self.is_alive = False
 		else:
 			self.is_alive = True
+
+
+thing = _CacheEntry(())
 
 
 class CacheDatabase:
@@ -279,3 +270,24 @@ class XpDivisionData:
 			self.xp_data = None
 		with open(DIVISION_DATA, 'r') as division_data:
 			self.xp_data = json.load(division_data)
+
+
+class LocalData:
+	def __init__(self):
+		self.gexp_db: GexpDatabase = GexpDatabase()
+		self.bot_extensions = []
+		self.config: TomlConfig = TomlConfig(CONFIG_PATH)
+		self.uuid_cache: CacheDatabase = CacheDatabase(CACHE_PATH)
+		self.discord_link: DiscordLink = DiscordLink(self.gexp_db.cursor)
+		self.xp_division_data: XpDivisionData = XpDivisionData()
+
+	def get_all_extensions(self) -> List[str]:
+		self.bot_extensions = []
+		for file in os.listdir('./extensions'):
+			if file.endswith('.py'):
+				self.bot_extensions.append(f"extensions.{file.replace('.py', '')}")
+		logging.debug(f"Found {len(self.bot_extensions)} extension(s): {[f for f in self.bot_extensions]}")
+		return self.bot_extensions
+
+
+LOCAL_DATA: LocalData | None = None
