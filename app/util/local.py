@@ -1,230 +1,213 @@
 import os
+import toml
+import time
 import json
-import logging
 import sqlite3
-import datetime
+import logging
 
-DATA_FOLDER_PATH = "../data"
-LOGS_FOLDER_PATH = os.path.join(DATA_FOLDER_PATH, "logs")
-IMAGES_FOLDER_PATH = os.path.join(DATA_FOLDER_PATH, "images")
-FONTS_FOLDER_PATH = os.path.join(DATA_FOLDER_PATH, "fonts")
-DATABASE_FOLDER_PATH = os.path.join(DATA_FOLDER_PATH, "db")
-DATABASE_PATH = os.path.join(DATABASE_FOLDER_PATH, "proudcircle.db")
-CONFIG_PATH = os.path.join(DATA_FOLDER_PATH, "config")
-XP_DIVISION_DATA_PATH = os.path.join(DATA_FOLDER_PATH, "xp_divisions.json")
+from os import path
+from typing import List
+from datetime import datetime
+
+DATA_FOLDER = "../data"
+LOGS_FOLDER = path.join(DATA_FOLDER, "logs")
+IMAGES_FOLDER = path.join(DATA_FOLDER, "images")
+FONTS_FOLDER = path.join(DATA_FOLDER, "fonts")
+DATABASE_FOLDER = path.join(DATA_FOLDER, "db")
+DATABASE_PATH = path.join(DATABASE_FOLDER, "proudcircle.db")
+CONFIG_PATH = path.join(DATA_FOLDER, "settings.conf")
+CACHE_PATH = path.join(DATA_FOLDER, "uuid.cache")
+CACHE_LIFETIME_SECONDS = 300
+DIVISION_DATA = path.join(DATA_FOLDER, "xp_divisions_reqs.json")
+WEEKLY_POINTS_DATA = path.join(DATA_FOLDER, "weekly_points_reqs.json")
+
 LOCAL_DATA = None
+PROGRAM_VARS = {}
 
 
 def setup():
-	if not os.path.exists(DATA_FOLDER_PATH):
-		os.mkdir(DATA_FOLDER_PATH)
-	if not os.path.exists(LOGS_FOLDER_PATH):
-		os.mkdir(LOGS_FOLDER_PATH)
+	if not path.exists(DATA_FOLDER):
+		os.mkdir(DATA_FOLDER)
+
+	if not path.exists(LOGS_FOLDER):
+		os.mkdir(LOGS_FOLDER)
 
 
 class LocalData:
 	def __init__(self):
+		self.gexp_db = GexpDatabase()
+		self.bot_extensions = []
+		self.config = TomlConfig(CONFIG_PATH)
+		self.uuid_cache = CacheDatabase(CACHE_PATH)
+		self.discord_link = DiscordLink(self.gexp_db.cursor)
+		self.xp_division_data = XpDivisionData()
+
+	def get_all_extensions(self) -> List[str]:
+		self.bot_extensions = []
+		for file in os.listdir('./extensions'):
+			if file.endswith('.py'):
+				self.bot_extensions.append(f"extensions.{file.replace('.py', '')}")
+		logging.debug(f"Found {len(self.bot_extensions)} extension(s): {[f for f in self.bot_extensions]}")
+		return self.bot_extensions
+
+
+class GexpDatabase:
+	def __init__(self):
+		logging.info("Loading GEXP Database...")
 		self.connection = sqlite3.connect(DATABASE_PATH)
 		self.cursor = self.connection.cursor()
 		self.tables = []
 		self.update_tables()
-		self.config = ConfigHandler(self.cursor)
-		self.extensions = []
-		self.uuid_cache = UuidCache(self.cursor)
-		self.discord_link = DiscordLink(self.cursor)
-
-	# self.xp_division_data = XpDivisionData()
+		logging.debug("Complete!")
 
 	def update_tables(self):
 		logging.debug("Updating tables")
-		cmd = "SELECT name FROM sqlite_master WHERE type='table';"
-		self.tables = self.cursor.execute(cmd).fetchall()
-
-	def reload(self):
-		logging.debug("Reloading database...")
-		logging.debug("Closing connections (Step 1/2)")
-		self.connection.close()
-		self.cursor.close()
-		self.connection = None
-		self.cursor = None
-		self.tables = None
-		self.extensions = []
-
-		logging.debug("Reopening connections (Step 2/2)")
-		self.connection = sqlite3.connect(DATABASE_PATH)
-		self.cursor = self.connection.cursor()
-		self.update_tables()
-		self.config = ConfigHandler(self.cursor)
-		self.extensions = self.get_all_extensions()
-		logging.debug("Database reload complete")
-
-	def get_all_extensions(self):
-		self.extensions = []
-		for file in os.listdir('./extensions'):
-			if file.endswith('.py'):
-				self.extensions.append(f"extensions.{file.replace('.py', '')}")
-		logging.debug(f"Found {len(self.extensions)} extension(s): {[f for f in self.extensions]}")
-		return self.extensions
+		command = "SELECT name FROM sqlite_master WHERE type='table';"
+		self.tables = self.cursor.execute(command).fetchall()
 
 
-class ConfigHandler:
-	def __init__(self, cursor: sqlite3.Cursor):
-		self.cursor = cursor
-		self.conn = cursor.connection
-		self.check_integrity()
-
-	def add_setting(self, setting_name: str):
-		"""Adds a new setting to the config table"""
-		self.cursor.execute(f"ALTER TABLE config ADD COLUMN {setting_name} TEXT")
-		self.conn.commit()
-
-	def remove_setting(self, setting_name: str):
-		"""Removes a setting from the config table"""
-		self.cursor.execute(f"ALTER TABLE config DROP COLUMN {setting_name}")
-		self.conn.commit()
-
-	def get_setting(self, key: str) -> str:
-		"""Retrieves the value of a setting from the config table"""
-		self.cursor.execute(f"SELECT {key} FROM config")
-		result = self.cursor.fetchone()
-		if result is None:
-			return None
-		return result[0]
-
-	def set_setting(self, key: str, value: str):
-		"""Sets the value of a setting in the config table"""
-		self.cursor.execute(f"UPDATE config SET {key} = '{value}'")
-		self.conn.commit()
-
-	def check_integrity(self):
-		"""
-		Checks the config table, just so the basics are there
-		"""
-		cmd = "CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY AUTOINCREMENT)"
-		self.cursor.execute(cmd)
-		self.conn.commit()
-
-		self.cursor.execute("PRAGMA table_info(config)")
-		columns = [column[1] for column in self.cursor.fetchall()]
-
-		settings = []
-		settings.append("bot_token")
-		settings.append("api_key")
-		settings.append("guild_id")
-		settings.append("bot_admin_role_id")
-		settings.append("server_id")
-		settings.append("log_channel")
-		settings.append("leaderboard_channel")
-		settings.append("lb_division_id")
-		settings.append("lb_lifetime_gexp_id")
-		settings.append("lb_yearly_gexp_id")
-		settings.append("lb_monthly_gexp_id")
-		settings.append("lb_weekly_gexp_id")
-		settings.append("lb_daily_gexp_id")
-
-		for setting in settings:
-			if setting not in columns:
-				self.add_setting(setting)
-
-		cmd = "SELECT * FROM config"
-		result = self.cursor.execute(cmd).fetchall()
-		if len(result) < 1:
-			columns = ', '.join(settings)
-			values = ', '.join(['null'] * len(settings))
-			cmd = f"INSERT INTO config ({columns}) VALUES ({values})"
-			self.cursor.execute(cmd)
-			self.conn.commit()
-
-
-class UuidCache:
-	def __init__(self, cursor: sqlite3.Cursor):
-		self.cursor = cursor
-		self.conn = cursor.connection
-		self.THRESHOLD_MINUTES = 120
-		self.check_integrity()
-
-	def check_integrity(self):
-		"""
-		Checks the cache table to make sure it's setup properly since this table often gets dropped
-		"""
-		cmd = "CREATE TABLE IF NOT EXISTS uuidCache (id INTEGER PRIMARY KEY AUTOINCREMENT)"
-		self.cursor.execute(cmd)
-		self.conn.commit()
-
-		self.cursor.execute("PRAGMA table_info(uuidCache)")
-		columns = [column[1] for column in self.cursor.fetchall()]
-
-		if "uuid" not in columns:
-			self.cursor.execute(f"ALTER TABLE uuidCache ADD COLUMN uuid TEXT")
-		if "name" not in columns:
-			self.cursor.execute(f"ALTER TABLE uuidCache ADD COLUMN name TEXT")
-		if "requestedAt" not in columns:
-			self.cursor.execute(f"ALTER TABLE uuidCache ADD COLUMN requestedAt TEXT")
-
-		self.conn.commit()
-
-	def get_player(self, player_id):
-		logging.debug(f"Retrieving player with id: {player_id}")
-		cmd = "SELECT id, uuid, name, requestedAt FROM uuidCache WHERE (uuid is ?) OR (name is ?)"
-		query = self.cursor.execute(cmd, (player_id, player_id))
-		cache_result = query.fetchall()
-		if len(cache_result) > 1:
-			logging.error(f"Duplicate players found! THIS SHOULDN'T HAPPEN : {cache_result}")
-			return None
-		elif len(cache_result) == 0:
-			return None
+class TomlConfig:
+	def __init__(self, config_path, default_config=None):
+		logging.info("Loading Config...")
+		if default_config is None:
+			default_config = {'bot': ['token']}
+		self.path = config_path
+		self.default_config = default_config
+		if os.path.exists(config_path):
+			self.config = toml.load(config_path)
 		else:
-			result = cache_result[0]
+			self.config = {}
+			self._generate_default_config()
+			self._save_config()
+		logging.debug("Complete!")
 
-		if result is None:
-			logging.debug("No valid entry found")
-			return None
+	def set(self, section, key, value):
+		if section not in self.config:
+			self.config[section] = {}
+		if value is None:
+			value = "null"
+		self.config[section][key] = value
+		self._save_config()
 
-		row_id = result[0]
-		uuid = result[1]
-		name = result[2]
-		requested = result[3]
-
-		time_now = datetime.datetime.now().timestamp()
-		string_time_now = str(time_now).split('.')[0]
-		fmt_time_now = int(string_time_now)
-		time_delta = datetime.datetime.fromtimestamp(int(requested)) - datetime.datetime.fromtimestamp(fmt_time_now)
-
-		if (time_delta.seconds / 60) > self.THRESHOLD_MINUTES:
-			logging.debug("Located valid cached player")
-			return _MojangData(uuid=uuid, name=name)
-
-		logging.debug("Clearing invalid player")
-		cmd = "DELETE FROM uuidCache WHERE id = ?"
-		execution = self.cursor.execute(cmd, (row_id,))
-		self.conn.commit()
+	def get(self, section, key):
+		if section in self.config and key in self.config[section]:
+			value = self.config[section][key]
+			if value == "null":
+				return None
+			return value
 		return None
 
-	def add_player(self, uuid, name, timestamp):
-		logging.debug(f"Adding player {uuid} to cache")
-		timestamp_string = str(timestamp).split('.')[0]
-		if name is None or uuid is None or timestamp is None:
-			logging.warning("Could not add invalid player to uuid cache!")
+	def _save_config(self):
+		with open(self.path, 'w') as f:
+			toml.dump(self.config, f)
+
+	def _generate_default_config(self):
+		for section, keys in self.default_config.items():
+			if section not in self.config:
+				self.config[section] = {}
+			for key in keys:
+				if key not in self.config[section]:
+					self.set(section, key, None)
+		self._save_config()
+
+
+class _CacheEntry:
+	def __init__(self, raw_result, lifetime_seconds=CACHE_LIFETIME_SECONDS):
+		self._raw_result = raw_result
+		if raw_result is None:
+			self.is_alive = False
+			self.uuid = None
+			self.name = None
+			self.born = None
 			return
-		cmd = "INSERT INTO uuidCache (uuid, name, requestedAt) VALUES (?, ?, ?)"
-		execution = self.cursor.execute(cmd, (uuid, name, timestamp_string))
-		self.conn.commit()
 
-	def clear_cache(self, confirm=False):
-		if not confirm:
-			logging.warning("Cache clearing has not been confirmed! The cache will not be deleted")
+		self.uuid = raw_result[0]
+		self.name = raw_result[1]
+		self.born = raw_result[2]
 
-		logging.debug("Clearing uuid cache")
-		self.cursor.execute("DROP TABLE uuidCache")
-		self.conn.commit()
-		self.check_integrity()
+		if (int(time.time()) - self.born) > lifetime_seconds:
+			self.is_alive = False
+		else:
+			self.is_alive = True
+
+
+class CacheDatabase:
+	def __init__(self, cache_path):
+		logging.info("Loading Cache Database")
+		self.path = cache_path
+		if not os.path.exists(self.path):
+			logging.warning("UUID Cache not found")
+			self._create_cache_table()
+
+		self.connection = sqlite3.connect(self.path)
+		self.cursor = self.connection.cursor()
+		logging.debug("Complete!")
+
+	def _create_cache_table(self) -> None:
+		logging.debug("Creating UUID Cache")
+		create_table_command = """
+		CREATE TABLE IF NOT EXISTS cache (
+		    uuid TEXT PRIMARY KEY NOT NULL,
+		    name TEXT NOT NULL,
+		    born INTEGER
+		);
+		"""
+		connection = sqlite3.connect(self.path)
+		cursor = connection.cursor()
+		cursor.execute(create_table_command)
+
+		create_trigger_command_uuid = """
+		CREATE TRIGGER IF NOT EXISTS format_uuid_trigger
+		AFTER INSERT ON cache
+		BEGIN
+		    UPDATE cache SET uuid =
+		        substr(uuid, 1, 8) || '-' ||
+		        substr(uuid, 9, 4) || '-' ||
+		        substr(uuid, 13, 4) || '-' ||
+		        substr(uuid, 17, 4) || '-' ||
+		        substr(uuid, 21)
+		    WHERE rowid = new.rowid;
+		END;
+		"""
+		cursor.execute(create_trigger_command_uuid)
+
+		create_trigger_command_born = """
+		CREATE TRIGGER set_born_trigger AFTER INSERT ON cache
+		BEGIN
+		    UPDATE cache SET born = strftime('%s', 'now')
+		    WHERE rowid = new.rowid;
+		END;
+		"""
+		cursor.execute(create_trigger_command_born)
+
+	def add_entry(self, uuid: str, name: str) -> None:
+		command = "INSERT INTO cache (uuid, name) VALUES (?, ?)"
+		self.cursor.execute(command, (uuid, name))
+		self.connection.commit()
+
+	def delete_entry(self, key: str) -> None:
+		command = "DELETE FROM cache WHERE uuid IS ? OR name IS ?"
+		self.cursor.execute(command, (key, key))
+		self.connection.commit()
+
+	def get_entry(self, key: str, lifetime_seconds: int = CACHE_LIFETIME_SECONDS) -> _CacheEntry:
+		command = "SELECT uuid, name, born FROM cache WHERE uuid is ? OR name = ?"
+		query = self.cursor.execute(command, (key, key))
+		result = query.fetchone()
+		return _CacheEntry(result, lifetime_seconds=lifetime_seconds)
+
+	def clear_cache(self) -> None:
+		command = "DELETE FROM cache;"
+		self.cursor.execute(command)
 
 
 class DiscordLink:
 	def __init__(self, cursor: sqlite3.Cursor):
+		logging.info("Loading Discord Link...")
 		self.cursor = cursor
 		self.conn = cursor.connection
 		self.check_integrity()
+		logging.debug("Load Complete!")
 
 	def check_integrity(self):
 		cmd = "CREATE TABLE IF NOT EXISTS discordLink (id INTEGER PRIMARY KEY AUTOINCREMENT)"
@@ -273,26 +256,11 @@ class DiscordLink:
 		if link is not None:
 			self.remove_link(link.row_id, link.uuid)
 		if timestamp_now_formatted is None:
-			timestamp_now = datetime.datetime.now().timestamp()
+			timestamp_now = int(time.time())
 			timestamp_now_formatted = str(timestamp_now).split('.')[0]
 		cmd = "INSERT INTO discordLink (uuid, discordId, discordUsername, linkedAt) VALUES (?, ?, ?, ?)"
 		self.cursor.execute(cmd, (player_uuid, discord_id, discord_username, timestamp_now_formatted))
 		self.conn.commit()
-
-
-class XpDivisionData:
-	def __init__(self):
-		if not os.path.exists(XP_DIVISION_DATA_PATH):
-			logging.warning("No XP Division found!")
-			self.xp_data = None
-		with open(XP_DIVISION_DATA_PATH, 'r') as division_data:
-			self.xp_data = json.load(division_data)
-
-
-class _MojangData:
-	def __init__(self, uuid, name):
-		self.uuid = uuid
-		self.name = name
 
 
 class _DiscordLink:
@@ -301,4 +269,13 @@ class _DiscordLink:
 		self.uuid = uuid
 		self.discord_id = int(discord_id)
 		self.discord_username = discord_username
-		self.linked_at = datetime.datetime.fromtimestamp(linked_at)
+		self.linked_at = datetime.fromtimestamp(linked_at)
+
+
+class XpDivisionData:
+	def __init__(self):
+		if not os.path.exists(DIVISION_DATA):
+			logging.warning("No XP Division found!")
+			self.xp_data = None
+		with open(DIVISION_DATA, 'r') as division_data:
+			self.xp_data = json.load(division_data)
