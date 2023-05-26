@@ -1,6 +1,4 @@
 import os
-from socket import socket
-
 import toml
 import time
 import json
