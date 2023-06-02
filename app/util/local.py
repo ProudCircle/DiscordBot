@@ -38,11 +38,9 @@ def setup():
     Returns:
     None
     """
-    if not path.exists(DATA_FOLDER):
-        os.mkdir(DATA_FOLDER)
-
-    if not path.exists(LOGS_FOLDER):
-        os.mkdir(LOGS_FOLDER)
+    for folder in [DATA_FOLDER, LOGS_FOLDER, IMAGES_FOLDER, FONTS_FOLDER, DATABASE_FOLDER]:
+        if not path.exists(folder):
+            os.mkdir(folder)
 
 
 class GexpDatabase:
