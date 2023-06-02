@@ -662,7 +662,7 @@ class XpDivisionData:
         if not os.path.exists(DIVISION_DATA):
             logging.warning("No XP Division found!")
             self.xp_data = None
-        with open(DIVISION_DATA, 'r') as division_data:
+        with open(DIVISION_DATA, 'r', encoding='utf-8') as division_data:
             self.xp_data = json.load(division_data)
 
 
