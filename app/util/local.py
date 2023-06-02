@@ -124,7 +124,7 @@ class TomlConfig:
 
     """
 
-    def __init__(self, config_path: str, default_config: Dict[Any] = None):
+    def __init__(self, config_path: str, default_config: Dict[str, Any] = None):
         """
         Initialize the TomlConfig object.
 
