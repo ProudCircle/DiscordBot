@@ -98,6 +98,39 @@ def setup_logger(stdout_level=logging.INFO):
     logging.debug("Logger setup complete")
 
 
+def test_config() -> None:
+    """
+    Test weather the config has the correct setup for all the items
+    needed for all the extensions or libraries of the bot.
+
+    Returns:
+        None
+
+    """
+    list_of_non_null_settings = [
+        ["required", "bot.token", "Bot Login Token (Discord Developer Panel)"],
+        ["required", "bot.api_key", "Hypixel API Key"],
+        ['required', "bot.guild_id", "Proud Circle Hypixel Guild ID"],
+        ["required", "bot.server_id", "Discord Server ID of the Proud Circle Guild Discord"],
+        ["required", "role_ids.bot_admin", "Bot Admin Role ID"],
+        ["required", "channel_ids.log_channel", "The ID of the text channel where you want the bot's log to be"],
+        # ["suggested", "message_ids.daily_gexp_lb", "The message ID of the GEXP Daily Leaderboard"],
+        # ["suggested", "message_ids.weekly_gexp_lb", "The message ID of the GEXP Weekly Leaderboard"],
+        # ["suggested", "message_ids.monthly_gexp_lb", "The message ID of the GEXP Monthly Leaderboard"],
+        # ["suggested", "message_ids.yearly_gexp_lb", "The message ID of the GEXP Yearly Leaderboard"],
+        # ["suggested", "message_ids.lifetime_gexp_lb", "The message ID of the GEXP Lifetime Leaderboard"],
+        # ["suggested", "channel_ids.lb_channel", "The ID of the text channel where the leaderboards are held"],
+    ]
+    for item in list_of_non_null_settings:
+        if item[0] == "required":
+            section = item[1].split('.')[0]
+            key = item[1].split('.')[1]
+            if LOCAL_DATA.config.get(section, key) is None:
+                logging.warning(f"Required config token: '{item[1]}' is invalid")
+                setting = input(f"Enter value for {item[1]} ({item[2]}): ")
+                LOCAL_DATA.config.set(section, key, setting.strip())
+
+
 async def main(token: str):
     bot_pfx = commands.when_mentioned
     bot_description = "A Discord Bot for the Proud Circle Guild!"
@@ -130,6 +163,8 @@ if __name__ == "__main__":
     # TODO: Fix this
 
     LOCAL_DATA = local.LocalData()
+
+    test_config()
 
     logging.info("Starting Proud Circle Bot...")
     asyncio.run(main(cli_args.token))
