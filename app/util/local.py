@@ -77,7 +77,9 @@ class GexpDatabase:
 
         """
         logging.info("Loading GEXP Database...")
-        self.connection = sqlite3.connect(DATABASE_PATH)
+        self.path = DATABASE_PATH
+        self._create_gexp_table()
+        self.connection = sqlite3.connect(self.path)
         self.cursor = self.connection.cursor()
         self.tables: List[str] = []
         self.update_tables()
@@ -100,6 +102,57 @@ class GexpDatabase:
         logging.debug("Updating tables")
         command = "SELECT name FROM sqlite_master WHERE type='table';"
         self.tables = self.cursor.execute(command).fetchall()
+
+    def _create_gexp_table(self) -> None:
+        """
+        Create the GEXP table
+
+        This method create the GEXP table in the GEXP History Database if it doesn't exist.
+        It also creates triggers for formatting the UUID.
+
+        Parameters:
+            self
+
+        Returns:
+            None
+        """
+        logging.debug("Creating Gexp Table")
+
+        create_table_command = """
+        CREATE TABLE IF NOT EXISTS expHistory (
+            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL,
+            timestamp INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            uuid TEXT NOT NULL,
+            amount INTEGER NOT NULL
+        );
+        """
+        connection = sqlite3.connect(self.path)
+        cursor = connection.cursor()
+        cursor.execute(create_table_command)
+
+        create_trigger_command_uuid = """
+        CREATE TRIGGER IF NOT EXISTS format_uuid_trigger
+        AFTER INSERT ON expHistory
+        BEGIN
+            UPDATE expHistory SET uuid =
+                CASE
+                    WHEN instr(uuid, '-') = 0 THEN
+                        substr(uuid, 1, 8) || '-' ||
+                        substr(uuid, 9, 4) || '-' ||
+                        substr(uuid, 13, 4) || '-' ||
+                        substr(uuid, 17, 4) || '-' ||
+                        substr(uuid, 21)
+                    ELSE
+                        uuid
+                END
+            WHERE id = new.id;
+        END;
+        """
+        cursor.execute(create_trigger_command_uuid)
+
+        connection.commit()
+        connection.close()
 
 
 class TomlConfig:
@@ -358,12 +411,12 @@ class CacheDatabase:
         """
         logging.debug("Creating UUID Cache")
         create_table_command = """
-		CREATE TABLE IF NOT EXISTS cache (
-			uuid TEXT PRIMARY KEY NOT NULL,
-			name TEXT NOT NULL,
-			born INTEGER
-		);
-		"""
+        CREATE TABLE IF NOT EXISTS cache (
+            uuid TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            born INTEGER
+        );
+        """
         connection = sqlite3.connect(self.path)
         cursor = connection.cursor()
         cursor.execute(create_table_command)
@@ -391,6 +444,9 @@ class CacheDatabase:
 		END;
 		"""
         cursor.execute(create_trigger_command_born)
+
+        connection.commit()
+        connection.close()
 
     def add_entry(self, uuid: str, name: str) -> None:
         """
