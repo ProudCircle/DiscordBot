@@ -111,6 +111,7 @@ def test_config() -> None:
         ["required", "bot.token", "Bot Login Token (Discord Developer Panel)"],
         ["required", "bot.api_key", "Hypixel API Key"],
         ['required', "bot.guild_id", "Proud Circle Hypixel Guild ID"],
+        ['required', "bot.server_id", "Proud Circle Discord Guild ID"],
         ["required", "bot.server_id", "Discord Server ID of the Proud Circle Guild Discord"],
         ["required", "role_ids.bot_admin", "Bot Admin Role ID"],
         ["required", "channel_ids.log_channel", "The ID of the text channel where you want the bot's log to be"],
