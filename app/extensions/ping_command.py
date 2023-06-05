@@ -1,3 +1,15 @@
+"""
+This cog adds 2 commands:
+	- /alive
+	- /ping
+Both of these commands are used to check the
+status of the bot by responding to the command
+with a message.
+
+Author: illyum
+"""
+
+
 import discord
 import logging
 
