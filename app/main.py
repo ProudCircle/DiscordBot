@@ -9,7 +9,7 @@ import argparse
 
 from util import local
 from discord.ext import commands
-from util.local import LOCAL_DATA
+from util.local import LOCAL_DATA, LocalDataSingleton
 from logging.handlers import RotatingFileHandler
 
 default_bot_intents = discord.Intents.default()
@@ -33,7 +33,7 @@ class ProudCircleDiscordBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         # Load all extensions: commands, events, tasks, etc.
-        ext = LOCAL_DATA.get_all_extensions()
+        ext = LOCAL_DATA.local_data.get_all_extensions()
         for extension in ext:
             try:
                 await self.load_extension(extension)
@@ -126,10 +126,10 @@ def test_config() -> None:
         if item[0] == "required":
             section = item[1].split('.')[0]
             key = item[1].split('.')[1]
-            if LOCAL_DATA.config.get(section, key) is None:
+            if LOCAL_DATA.local_data.config.get(section, key) is None:
                 logging.warning(f"Required config token: '{item[1]}' is invalid")
                 setting = input(f"Enter value for {item[1]} ({item[2]}): ")
-                LOCAL_DATA.config.set(section, key, setting.strip())
+                LOCAL_DATA.local_data.config.set(section, key, setting.strip())
 
 
 async def main(token: str):
@@ -138,7 +138,7 @@ async def main(token: str):
 
     bot = ProudCircleDiscordBot(intents=default_bot_intents, command_prefix=bot_pfx, description=bot_description)
     if token is None:
-        token = LOCAL_DATA.config.get('bot', 'token')
+        token = LOCAL_DATA.local_data.config.get('bot', 'token')
     if token is None:
         logging.critical("No bot token found")
         return
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     # At this point, localdata has not been initialized and therefore does not exist
     # TODO: Fix this
 
-    LOCAL_DATA = local.LocalData()
+    local_data_singleton = LocalDataSingleton()
 
     test_config()
 

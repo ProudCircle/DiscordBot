@@ -120,7 +120,7 @@ class GexpDatabase:
 
         create_table_command = """
         CREATE TABLE IF NOT EXISTS expHistory (
-            id INTEGER AUTOINCREMENT PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             timestamp INTEGER NOT NULL,
             date TEXT NOT NULL,
             uuid TEXT NOT NULL,
@@ -770,4 +770,14 @@ class LocalData:
         return self.bot_extensions
 
 
-LOCAL_DATA: LocalData | None = None
+class LocalDataSingleton:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.local_data = LocalData()
+        return cls._instance
+
+
+LOCAL_DATA: LocalDataSingleton = LocalDataSingleton()
