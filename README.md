@@ -101,9 +101,10 @@ As a community-driven project, we welcome contributions from anyone interested i
 If you would like to contribute to the project, please follow these steps:
 
 1. Fork this repository to your own account.
-2. Make your changes on your forked repository. 
-3. Test your changes thoroughly.
-4. Submit a pull request to the main repository with your changes.
+2. Create a new branch (name it according to your reasoning for contributing)
+3. Make your changes on your forked repository. 
+4. Test your changes thoroughly.
+5. Submit a pull request to the main repository with your changes.
 
 We will review your pull request and provide feedback as necessary. We appreciate your contributions and look forward to working with you!
 
