@@ -31,6 +31,7 @@ from discord import app_commands
 import util.command_helper
 from util.local import LOCAL_DATA
 from discord.ext import tasks, commands
+from util.uuider import add_hyphens_to_uuid
 from util.embed_lib import GexpLoggerStartEmbed, GexpLoggerFinishEmbed
 
 
@@ -160,7 +161,7 @@ class GexpLogger(commands.Cog):
             bool: True if synchronization is successful, False otherwise.
         """
         try:
-            _uuid = member["uuid"]
+            _uuid = add_hyphens_to_uuid(member["uuid"])
             xp_history = member["expHistory"]
         except Exception as e:
             logging.fatal(f"Encountered fatal exception syncing exp history for {member}: {e}")
