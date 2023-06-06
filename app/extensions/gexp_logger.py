@@ -1,223 +1,346 @@
-import uuid
-import time
-import logging
-import aiohttp
-import discord
-import util.command_helper
+"""
+This cog handles all the logic and functionality
+to log and sync member GEXP.
 
-from util import local
-from util import embed_lib
-from datetime import datetime
+Commands:
+- /sync-gexp (Admin Only)
+This command will trigger the gexp sync/logger
+
+Tasks:
+- sync_gexp_task
+This task will automatically trigger
+the gexp sync/logger every 15 minutes.
+By default, the sync/logger will only
+trigger after the 15-minute mark as to
+not run on startup.
+
+Author: illyum
+"""
+
+import time
+import uuid
+import aiohttp
+import asyncio
+import discord
+import logging
+
+from typing import Union, Dict
+
 from discord import app_commands
+
+import util.command_helper
+from util.local import LOCAL_DATA
 from discord.ext import tasks, commands
+from util.embed_lib import GexpLoggerStartEmbed, GexpLoggerFinishEmbed
 
 
 class GexpLogger(commands.Cog):
-	def __init__(self, bot: commands.Bot, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.bot = bot
-		self.local_data = local.LOCAL_DATA
-		self.server_id = int(local.LOCAL_DATA.config.get_setting("server_id"))
-		self.has_run = False
-		self.start_message = None
-		self.start_time = None
-		self.log_channel = int(local.LOCAL_DATA.config.get_setting("log_channel"))
-		self.log_gexp.start()
-		self.is_running = False
+    """
+    Cog class for logging Gexp tasks.
+    """
 
-	def check_table_structure(self) -> None:
-		logging.debug("Checking expHistory table structure")
-		sqlite_cur = self.local_data.cursor
-		sqlite_cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='expHistory';")
-		if not sqlite_cur.fetchone():
-			# Table does not exist, create it
-			logging.debug("Creating table expHistory")
-			sqlite_cur.execute('''CREATE TABLE expHistory (timestamp text, date text, uuid text, amount int, rank text)''')
-		else:
-			# Table exists, check that it has the correct columns
-			sqlite_cur.execute("PRAGMA table_info(expHistory);")
-			column_info = sqlite_cur.fetchall()
-			column_names = [column[1] for column in column_info]
-			if "timestamp" not in column_names:
-				logging.debug("Adding column: 'timestamp'")
-				sqlite_cur.execute("ALTER TABLE expHistory ADD COLUMN timestamp text;")
-			if "date" not in column_names:
-				logging.debug("Adding column: 'date'")
-				sqlite_cur.execute("ALTER TABLE expHistory ADD COLUMN date text;")
-			if "uuid" not in column_names:
-				logging.debug("Adding column: 'uuid'")
-				sqlite_cur.execute("ALTER TABLE expHistory ADD COLUMN uuid text;")
-			if "amount" not in column_names:
-				logging.debug("Adding column: 'amount'")
-				sqlite_cur.execute("ALTER TABLE expHistory ADD COLUMN amount int;")
-			if "rank" not in column_names:
-				logging.debug("Adding column: 'rank'")
-				sqlite_cur.execute("ALTER TABLE expHistory ADD COLUMN rank text;")
-		sqlite_cur.connection.commit()
-		logging.debug("Table structure check complete!")
+    def __init__(self, bot: commands.Bot, *args, **kwargs):
+        """
+        Initialize the GexpLogger cog.
 
-	async def fetch_guild_data(self):
-		key = self.local_data.config.get_setting("api_key")
-		guild_id = self.local_data.config.get_setting("guild_id")
-		url = f"https://api.hypixel.net/guild?key={key}&id={guild_id}"
-		async with aiohttp.ClientSession() as session:
-			async with session.get(url) as response:
-				# ratelimit_remaining = response.headers["RateLimit-Remaining"]
-				guild_data = await response.json()
-				if not guild_data["success"]:
-					logging.fatal(f"Unsuccessful in scraping api data: {response.headers} | {guild_data}")
-					return None
-				return guild_data
+        Parameters:
+            bot (commands.Bot): The instance of the bot.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
+        super().__init__(*args, **kwargs)
+        self.bot = bot
+        self.local_data = LOCAL_DATA.local_data
+        self.has_run = False
+        self.start_message = None
+        self.start_time = None
+        self.end_time = None
+        self.task_id = None
+        self.is_running = False
+        self.server_id = self.local_data.config.get("bot", "server_id")
+        self.log_channel = self.local_data.config.get("channel_ids", "log_channel")
+        self.cursor = self.local_data.gexp_db.cursor
+        self.sync_gexp_task.start()
 
-	def sync_exp_history(self, member) -> None:
-		sqlite_cur = self.local_data.cursor
-		uuid = member["uuid"].replace('-', '')
-		rank = member["rank"]
-		xp_history = member["expHistory"]
-		# logging.debug(f"Syncing Member: {member['uuid']}")
+    async def fetch_guild_data(self) -> Union[Dict, None]:
+        """
+        Fetches guild data from the Hypixel API.
 
-		for date, amount in xp_history.items():
-			if str(date).startswith("2022"):
-				logging.debug(f"Skipping date: {date}")
-				continue
+        Parameters:
+            self
 
-			sqlite_cur.execute("SELECT * FROM expHistory WHERE uuid=? AND date=?", (uuid, date))
-			result = sqlite_cur.fetchone()
-			if result:
-				recorded_amount = result[3]
-				if recorded_amount != amount:
-					logging.debug(f"Updating unsynced data: {recorded_amount} -> {amount} | {uuid} {date}")
-					sqlite_cur.execute("UPDATE expHistory SET timestamp=?, amount=? WHERE uuid=? AND date=?", (
-						datetime.now().timestamp(), amount, uuid, date))
-			else:
-				# logging.debug(f"Syncing data: {uuid} {date}")
-				sqlite_cur.execute(
-					"INSERT INTO expHistory (timestamp, date, uuid, amount, rank) VALUES (?, ?, ?, ?, ?)", (
-						datetime.now().timestamp(), date, uuid, amount, rank))
-		sqlite_cur.connection.commit()
+        Returns:
+            Union[Dict, None]: The guild data if successful, None otherwise. AKA response.json()
+        """
+        logging.debug("Fetching guild data")
+        key = self.local_data.config.get("bot", "api_key")
+        guild_id = self.local_data.config.get("bot", "guild_id")
+        url = f"https://api.hypixel.net/guild?key={key}&id={guild_id}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    logging.warning(f"Unknown status code: {response.status} (GexpLogger)")
+                if int(response.headers.get('ratelimit-remaining', 0)) <= 0:
+                    logging.warning("Key is being rate-limited. Check log file for more details")
+                    logging.debug(f"Response Headers: {response.headers}")
+                    time_to_sleep = int(response.headers.get('ratelimit-reset', 0)) + 2
+                    await asyncio.sleep(time_to_sleep)
 
-	def sync_division(self, member) -> None:
-		sqlite_cur = self.local_data.cursor
-		uuid = member["uuid"].replace('-', '')
-		rank = member["rank"]
+                guild_data = await response.json()
+                if not guild_data["success"]:
+                    logging.fatal(f"Unsuccessful in scraping API data: {response.headers} | {guild_data}")
+                    return None
+                return guild_data
 
-	@tasks.loop(minutes=15)
-	async def log_gexp(self) -> None:
-		if self.is_running:
-			return
+    async def send_starting_message(self) -> None:
+        """
+        Sends the starting message for the GexpLogger task.
 
-		if not self.has_run:
-			self.has_run = True
-			logging.debug("GexpLogger: Skipping first run")
-			return
+        The starting message includes the task ID and start time in an embed.
 
-		self.is_running = True
-		try:
-			await self.run_sync()
-		except Exception as e:
-			logging.critical(f"GexpLogger: Could not complete task -> {e}")
-		self.is_running = False
+        Logs a warning if an exception occurs during message sending.
 
-	@log_gexp.before_loop
-	async def before_exp_logger_init(self):
-		await self.bot.wait_until_ready()
-		self.check_table_structure()
+        Parameters:
+            self
 
-	async def run_sync(self, interaction: discord.Interaction = None):
-		start_time = time.perf_counter()
-		task_id = uuid.uuid4()
-		await self.send_starting_message(start_time, task_id)
-		if interaction is not None:
-			try:
-				await interaction.response.send_message(embed=embed_lib.GexpLoggerStartEmbed(
-					task_id=task_id,
-					start_time=start_time
-				))
-			except Exception as e:
-				logging.error(f"GexpLogger: Could not send start message to log channel -> {e}")
+        Returns: None
+        """
+        logging.info(f"Running GexpLogger (id: {self.task_id})")
+        try:
+            self.start_message = await self.bot.get_guild(self.server_id).get_channel(self.log_channel).send(
+                embed=GexpLoggerStartEmbed(
+                    task_id=self.task_id,
+                    start_time=self.start_time
+                ))
+        except Exception as e:
+            logging.warning(e)
 
-		data = await self.fetch_guild_data()
-		members_synced = 0
+    async def send_finish_message(self, members_synced) -> None:
+        """
+        Sends the finishing message for the GexpLogger task.
 
-		bot_server_id = int(local.LOCAL_DATA.config.get_setting("server_id"))
-		bot_admin = int(local.LOCAL_DATA.config.get_setting("bot_admin_role_id"))
-		if data is None:
-			logging.critical("Unknown error fetching guild data")
-			await self.bot.get_guild(bot_server_id).get_channel(bot_admin).send(
-				f"Unknown Error occurred with task id: {task_id} "
-				f"{self.bot.get_guild(bot_server_id).get_role(bot_admin).mention}")
-		else:
-			guild_members = data.get("guild", {}).get("members", {})
-			for member in guild_members:
-				self.sync_exp_history(member)
-				self.sync_division(member)
-				members_synced += 1
-		end_time = time.perf_counter()
-		await self.send_finish_message(task_id, start_time, end_time, members_synced)
-		if interaction is not None:
-			try:
-				await interaction.edit_original_response(embed=embed_lib.GexpLoggerFinishEmbed(
-					task_id=task_id,
-					start_time=start_time,
-					end_time=end_time,
-					members_synced=members_synced
-				))
-			except Exception as e:
-				logging.error(f"GexpLogger: Could not send finish message to log channel -> {e}")
-		logging.debug(f"GexpLogger Complete (id: {task_id})")
+        The finishing message includes the task ID, start time, end time, and number of members synced in an embed.
 
-	async def send_starting_message(self, start_time, task_id):
-		logging.info(f"Running GexpLogger (id: {task_id})")
-		try:
-			self.start_message = await self.bot.get_guild(self.server_id).get_channel(1061815307473268827)\
-				.send(
-				embed=embed_lib.GexpLoggerStartEmbed(
-					task_id=task_id,
-					start_time=start_time
-				))
-		except Exception as e:
-			logging.warning(e)
+        Deletes the starting message and sends the finishing message to the log channel.
 
-	async def send_finish_message(self, task_id, start_time, end_time, members_synced):
-		try:
-			await self.start_message.delete()
-			await self.bot.get_guild(self.server_id).get_channel(self.log_channel).send(
-				embed=embed_lib.GexpLoggerFinishEmbed(
-					task_id=task_id,
-					start_time=start_time,
-					end_time=end_time,
-					members_synced=members_synced
-				))
-		except Exception as e:
-			logging.warning(e)
+        Logs a warning if an exception occurs during message sending.
 
-	@app_commands.command(name="sync-gexp", description="Sync's the gexp with hypixel's data (Admins Only")
-	async def sync_gexp_command(self, interaction: discord.Interaction):
-		is_bot_admin = util.command_helper.ensure_bot_permissions(interaction, send_deny_response=True)
-		if not is_bot_admin:
-			return
+        Parameters:
+            self
+            members_synced (int): The number of members synced during the task.
 
-		if self.is_running:
-			is_running_embed = discord.Embed(description="Syncing is already happening, please wait before running this command again")
-			await interaction.response.send_message(embed=is_running_embed)
-			return
+        Returns:
+            None
+        """
+        try:
+            await self.start_message.delete()
+            await self.bot.get_guild(self.server_id).get_channel(self.log_channel).send(
+                embed=GexpLoggerFinishEmbed(
+                    task_id=self.task_id,
+                    start_time=self.start_time,
+                    end_time=self.end_time,
+                    members_synced=members_synced
+                ))
+        except Exception as e:
+            logging.warning(e)
 
-		self.is_running = True
-		try:
-			await self.run_sync(interaction)
-		except Exception as e:
-			logging.critical(f"GexpLogger: Could not complete command task -> {e}")
-		self.is_running = False
+    def sync_member_exp_history(self, member) -> bool:
+        """
+        Synchronizes the experience history of a guild member.
 
-	def check_permission(self, user: discord.Interaction.user):
-		request = local.LOCAL_DATA.cursor.execute("SELECT bot_admin_role_id FROM config").fetchone()[0]
-		if request is None:
-			return False
-		if user.get_role(int(request)):
-			return True
-		return False
+        Retrieves the UUID and experience history of the member.
+        Updates the database with the member's experience history, checking for any changes.
+
+        Parameters:
+            self
+            member (dict): guild member info from guild endpoint
+
+
+        Returns:
+            bool: True if synchronization is successful, False otherwise.
+        """
+        try:
+            _uuid = member["uuid"]
+            xp_history = member["expHistory"]
+        except Exception as e:
+            logging.fatal(f"Encountered fatal exception syncing exp history for {member}: {e}")
+            return False
+
+        for date, amount in xp_history.items():
+            self.cursor.execute("SELECT * FROM expHistory WHERE uuid=? AND date=?", (_uuid, date))
+            result = self.cursor.fetchone()
+            time_now = int(time.time())
+            if result:
+                recorded_amount = result[4]  # Fetch the amount from the correct column
+                if recorded_amount != amount:
+                    self.cursor.execute("UPDATE expHistory SET timestamp=?, amount=? WHERE uuid=? AND date=?", (
+                        time_now, amount, _uuid, date))
+            else:
+                self.cursor.execute(
+                    "INSERT INTO expHistory (timestamp, date, uuid, amount) VALUES (?, ?, ?, ?)", (
+                        time_now, date, _uuid, amount))
+        return True
+
+    async def run_sync(self, interaction: discord.Interaction = None) -> None:
+        """
+        Runs the synchronization process. (Syncs ALL guild members)
+
+        Performs the synchronization of guild members' experience history.
+        Sends starting and finishing messages, updates the database, and sends responses.
+
+        Parameters:
+            self
+            interaction (discord.Interaction, optional): The interaction associated with the command (if available).
+
+        Returns:
+            None
+        """
+        if self.is_running:
+            logging.debug("Blocking sync due to duplicate instances")
+            return
+        logging.debug("Running GEXP Sync")
+
+        self.is_running = True
+        self.start_time = time.perf_counter()
+        self.task_id = uuid.uuid4()
+        if interaction is None:
+            await self.send_starting_message()
+        else:
+            await interaction.response.send_message(embed=GexpLoggerStartEmbed(self.task_id, self.start_time))
+
+        guild_data = await self.fetch_guild_data()
+        logging.debug("Guild data retrieved")
+        if guild_data is None:
+            logging.critical("Unknown error fetching guild data")
+            await self.send_finish_message(0)
+            await self.alert_staff_of_error()
+            return
+        members_synced = 0
+        logging.debug("Syncing members")
+        guild_members = guild_data.get("guild").get("members")
+        for member in guild_members:
+            successful = self.sync_member_exp_history(member)
+            if successful:
+                members_synced += 1
+            else:
+                logging.error(f"Unknown error syncing member: '{member}'")
+        logging.debug("Finished syncing members")
+        self.cursor.connection.commit()
+        self.end_time = time.perf_counter()
+        await self.send_finish_message(members_synced)
+        if interaction is not None:
+            await interaction.edit_original_response(embed=GexpLoggerFinishEmbed(
+                task_id=self.task_id,
+                start_time=self.start_time,
+                end_time=self.end_time,
+                members_synced=members_synced
+            ))
+
+    async def alert_staff_of_error(self) -> None:
+        """
+        Alerts the staff of an error during the synchronization process.
+
+        Retrieves the necessary role ID, server ID, and log channel ID from the configuration.
+        Sends an alert message to the log channel mentioning the staff role.
+
+        Logs a warning if an exception occurs during the alerting process.
+
+        Parameters:
+            self
+
+        Returns:
+            None
+        """
+        staff_role_id = int(self.local_data.config.get("role_ids", "bot_admin"))
+        server_id = int(self.local_data.config.get("bot", "server_id"))
+        log_channel_id = int(self.local_data.config.get("channel_ids", "log_channel"))
+        try:
+            admin_role = self.bot.get_guild(server_id).get_role(staff_role_id)
+            alert_message = f"{admin_role.mention} ALERT:\nTHERE WAS AN ERROR SYNCING GEXP"
+            await self.bot.get_guild(server_id).get_channel(log_channel_id).send(alert_message)
+        except Exception as e:
+            logging.warning(f"Unable to alert staff of an error: {e}")
+            return
+
+    @tasks.loop(minutes=15)
+    async def sync_gexp_task(self) -> None:
+        """
+        Background task for periodically running the synchronization process.
+
+        Skips the first run to avoid immediate execution upon starting the task.
+        Runs the synchronization process, handling any exceptions that may occur.
+        Sets the `is_running` flag accordingly.
+
+        Parameters:
+            self
+
+        Returns:
+            None
+        """
+        if self.is_running:
+            return
+
+        if not self.has_run:
+            self.has_run = True
+            logging.debug("GexpLogger: Skipping first run")
+            return
+
+        try:
+            await self.run_sync()
+        except Exception as e:
+            logging.critical(f"GexpLogger: Could not complete task -> {e}")
+            await self.alert_staff_of_error()
+        self.is_running = False
+
+    @sync_gexp_task.before_loop
+    async def sync_gexp_task_setup(self) -> None:
+        """
+        Setup function for the sync_gexp_task loop.
+
+        Waits until the bot is ready before starting the task.
+
+        Parameters:
+            self
+
+        Returns:
+            None
+        """
+        await self.bot.wait_until_ready()
+
+    @app_commands.command(name="sync-gexp", description="Runs sync gexp task (Admin Only)")
+    async def sync_gexp_command(self, interaction: discord.Interaction) -> None:
+        """
+        Command function for running the synchronization process.
+
+        Checks if the user is an admin and if the task is already running.
+        Runs the synchronization process, handling any exceptions that may occur.
+        Sets the `is_running` flag accordingly.
+
+        Parameters:
+            interaction (discord.Interaction): The interaction associated with the command.
+
+        Returns:
+            None
+        """
+        is_admin = await util.command_helper.ensure_bot_perms(interaction, send_denied_response=True)
+        if not is_admin:
+            return
+
+        if self.is_running:
+            logging.debug("Blocking sync due to duplicate instances")
+            _description = "Syncing is already happening, please wait before running this command again"
+            is_running_embed = discord.Embed(description=_description)
+            await interaction.response.send_message(embed=is_running_embed)
+            return
+
+        try:
+            await self.run_sync(interaction)
+        except Exception as e:
+            logging.critical(f"GexpLogger: Could not complete command task -> {e}")
+            await self.alert_staff_of_error()
+        self.is_running = False
 
 
 async def setup(bot: commands.Bot):
-	logging.debug("Adding cog: GexpLogger")
-	await bot.add_cog(GexpLogger(bot))
+    logging.debug("Adding cog: GexpLogger")
+    await bot.add_cog(GexpLogger(bot))
