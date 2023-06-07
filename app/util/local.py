@@ -524,6 +524,36 @@ class CacheDatabase:
         self.cursor.execute(command)
 
 
+class _DiscordLink:
+    """
+    Represents a Discord link with the associated information.
+
+    Attributes:
+        row_id (int): The row ID of the link in the database.
+        uuid (str): The UUID of the player.
+        discord_id (int): The Discord ID associated with the player.
+        discord_username (str): The Discord username associated with the Discord ID.
+        linked_at (datetime): The timestamp when the link was established.
+    """
+
+    def __init__(self, row_id: int, uuid: str, discord_id: str, discord_username: int, linked_at: int):
+        """
+        Initializes a new instance of the _DiscordLink class.
+
+        Args:
+            row_id (int): The row ID of the link in the database.
+            uuid (str): The UUID of the player.
+            discord_id (str): The Discord ID associated with the player.
+            discord_username (int): The Discord username associated with the Discord ID.
+            linked_at (int): The timestamp when the link was established.
+        """
+        self.row_id = row_id
+        self.uuid = uuid
+        self.discord_id = int(discord_id)
+        self.discord_username = discord_username
+        self.linked_at = datetime.fromtimestamp(linked_at)
+
+
 class DiscordLink:
     """
     Represents a Discord link.
@@ -593,7 +623,7 @@ class DiscordLink:
         self.cursor.execute(cmd)
         self.conn.commit()
 
-    def get_link(self, identification):
+    def get_link(self, identification) -> _DiscordLink:
         """
         Retrieves a Discord link from the 'discordLink' table based on the provided identification.
         The identification can be either the 'uuid' or 'discordId'.
@@ -606,7 +636,9 @@ class DiscordLink:
             If no matching link is found, None is returned.
         """
         _id = str(identification)
-        cmd = "SELECT id, uuid, discordId, discordUsername, linkedAt FROM discordLink WHERE (uuid is ?) OR (discordId is ?)"
+        cmd = """
+        SELECT id, uuid, discordId, discordUsername, linkedAt FROM discordLink WHERE (uuid is ?) OR (discordId is ?)
+        """
         result = self.cursor.execute(cmd, (_id, _id)).fetchone()
         if result is None:
             return None
@@ -658,36 +690,6 @@ class DiscordLink:
         cmd = "INSERT INTO discordLink (uuid, discordId, discordUsername, linkedAt) VALUES (?, ?, ?, ?)"
         self.cursor.execute(cmd, (player_uuid, discord_id, discord_username, timestamp_now_formatted))
         self.conn.commit()
-
-
-class _DiscordLink:
-    """
-    Represents a Discord link with the associated information.
-
-    Attributes:
-        row_id (int): The row ID of the link in the database.
-        uuid (str): The UUID of the player.
-        discord_id (int): The Discord ID associated with the player.
-        discord_username (str): The Discord username associated with the Discord ID.
-        linked_at (datetime): The timestamp when the link was established.
-    """
-
-    def __init__(self, row_id: int, uuid: str, discord_id: str, discord_username: int, linked_at: int):
-        """
-        Initializes a new instance of the _DiscordLink class.
-
-        Args:
-            row_id (int): The row ID of the link in the database.
-            uuid (str): The UUID of the player.
-            discord_id (str): The Discord ID associated with the player.
-            discord_username (int): The Discord username associated with the Discord ID.
-            linked_at (int): The timestamp when the link was established.
-        """
-        self.row_id = row_id
-        self.uuid = uuid
-        self.discord_id = int(discord_id)
-        self.discord_username = discord_username
-        self.linked_at = datetime.fromtimestamp(linked_at)
 
 
 class XpDivisionData:
@@ -778,6 +780,26 @@ class LocalDataSingleton:
             cls._instance = super().__new__(cls)
             cls._instance.local_data = LocalData()
         return cls._instance
+
+    @property
+    def gexp_db(self) -> GexpDatabase:
+        return self.local_data.gexp_db
+
+    @property
+    def config(self) -> TomlConfig:
+        return self.local_data.config
+
+    @property
+    def uuid_cache(self) -> CacheDatabase:
+        return self.local_data.uuid_cache
+
+    @property
+    def discord_link(self) -> DiscordLink:
+        return self.local_data.discord_link
+
+    @property
+    def xp_division_data(self) -> XpDivisionData:
+        return self.local_data.xp_division_data
 
 
 LOCAL_DATA: LocalDataSingleton = LocalDataSingleton()
