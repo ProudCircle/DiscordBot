@@ -1,0 +1,208 @@
+{
+  "roles": [
+    {
+      "id_name": "rookie_one",
+      "discord_name": "[ 👾 ] Rookie I (75k)",
+      "role_id": 1052291179103928340,
+      "required_amount": 75000
+    },
+    {
+      "id_name": "rookie_two",
+      "discord_name": "[ 👾 ] Rookie II (100k)",
+      "role_id": 1055847915735756880,
+      "required_amount": 100000
+    },
+    {
+      "id_name": "rookie_three",
+      "discord_name": "[ 👾 ] Rookie III (125k)",
+      "role_id": 1055847924543803552,
+      "required_amount": 125000
+    },
+    {
+      "id_name": "rookie_four",
+      "discord_name": "[ 👾 ] Rookie IV (150k)",
+      "role_id": 1055847936300425247,
+      "required_amount": 150000
+    },
+    {
+      "id_name": "rookie_five",
+      "discord_name": "[ 👾 ] Rookie V (200k)",
+      "role_id": 1055847945662124032,
+      "required_amount": 200000
+    },
+    {
+      "id_name": "grinder_one",
+      "discord_name": "[ ☄️ ] Grinder I (300k)",
+      "role_id": 1055847974099484722,
+      "required_amount": 300000
+    },
+    {
+      "id_name": "grinder_two",
+      "discord_name": "[ ☄️ ] Grinder II (350k)",
+      "role_id": 1055847970228158554,
+      "required_amount": 350000
+    },
+    {
+      "id_name": "grinder_three",
+      "discord_name": "[  ☄️ ] Grinder III (400k)",
+      "role_id": 1055847962095386624,
+      "required_amount": 400000
+    },
+    {
+      "id_name": "grinder_four",
+      "discord_name": "[ ☄️ ] Grinder IV (450k)",
+      "role_id": 1055847954667290656,
+      "required_amount": 450000
+    },
+    {
+      "id_name": "grinder_five",
+      "discord_name": "[ ☄️ ] Grinder V (500k)",
+      "role_id": 1055849529443885167,
+      "required_amount": 500000
+    },
+    {
+      "id_name": "astral_one",
+      "discord_name": "[ 🌙 ] Astral I (600k)",
+      "role_id": 1055849570971697212,
+      "required_amount": 600000
+    },
+    {
+      "id_name": "astral_two",
+      "discord_name": "[  🌙 ] Astral II (700k)",
+      "role_id": 1055849568639668264,
+      "required_amount": 700000
+    },
+    {
+      "id_name": "astral_three",
+      "discord_name": "[  🌙  ] Astral III (800k)",
+      "role_id": 1055849566693490738,
+      "required_amount": 800000
+    },
+    {
+      "id_name": "astral_four",
+      "discord_name": "[ 🌙 ] Astral IV (900k)",
+      "role_id": 1055849564806066268,
+      "required_amount": 900000
+    },
+    {
+      "id_name": "astral_five",
+      "discord_name": "[  🌙 ] Astral V (1m)",
+      "role_id": 1055849562268516382,
+      "required_amount": 1000000
+    },
+    {
+      "id_name": "mythical_one",
+      "discord_name": "[ 🌀 ] Mythical I (1.3m)",
+      "role_id": 1055849553934434314,
+      "required_amount": 1300000
+    },
+    {
+      "id_name": "mythical_two",
+      "discord_name": "[ 🌀 ] Mythical II (1.6m)",
+      "role_id": 1055849551422046239,
+      "required_amount": 1600000
+    },
+    {
+      "id_name": "mythical_three",
+      "discord_name": "[ 🌀 ] Mythical III (1.9m)",
+      "role_id": 1055851769332256849,
+      "required_amount": 1900000
+    },
+    {
+      "id_name": "mythical_four",
+      "discord_name": "[ 🌀 ] Mythical IV (2.2m)",
+      "role_id": 1055851778366779392,
+      "required_amount": 2200000
+    },
+    {
+      "id_name": "mythical_five",
+      "discord_name": "[ 🌀 ] Mythical V (2.5m)",
+      "role_id": 1055851780061282336,
+      "required_amount": 2500000
+    },
+    {
+      "id_name": "palatial_one",
+      "discord_name": "[ 👑 ] Palatial I (3m)",
+      "role_id": 1055851792455454750,
+      "required_amount": 3000000
+    },
+    {
+      "id_name": "palatial_two",
+      "discord_name": "[ 👑 ] Palatial II (4m)",
+      "role_id": 1055851793747300423,
+      "required_amount": 5000000
+    },
+    {
+      "id_name": "palatial_three",
+      "discord_name": "[ 👑 ] Palatial III (5m)",
+      "role_id": 1055851794850398259,
+      "required_amount": 5000000
+    },
+    {
+      "id_name": "palatial_four",
+      "discord_name": "[ 👑 ] Palatial IV (6m)",
+      "role_id": 1055852129450999852,
+      "required_amount": 6000000
+    },
+    {
+      "id_name": "palatial_five",
+      "discord_name": "[ 👑 ] Palatial V (7m)",
+      "role_id": 1055852138481319936,
+      "required_amount": 7000000
+    },
+    {
+      "id_name": "palatial_six",
+      "discord_name": "[ 👑 ] Palatial VI (8m)",
+      "role_id": 1055852147016732752,
+      "required_amount": 8000000
+    },
+    {
+      "id_name": "palatial_seven",
+      "discord_name": "[ 👑 ] Palatial VII (9m)",
+      "role_id": 1055852148241485909,
+      "required_amount": 9000000
+    },
+    {
+      "id_name": "palatial_eight",
+      "discord_name": "[ 👑 ] Palatial VII (10m)",
+      "role_id": 1055852157095649350,
+      "required_amount": 10000000
+    },
+    {
+      "id_name": "divine_one",
+      "discord_name": "[ 🩸 ] Divine I (12m)",
+      "role_id": 1055852178251722782,
+      "required_amount": 12000000
+    },
+    {
+      "id_name": "divine_two",
+      "discord_name": "[ 🩸 ] Divine II (14m)",
+      "role_id": 1055852187961536622,
+      "required_amount": 14000000
+    },
+    {
+      "id_name": "divine_three",
+      "discord_name": "[ 🩸 ] Divine III (16m)",
+      "role_id": 1055852189731532871,
+      "required_amount": 16000000
+    },
+    {
+      "id_name": "divine_four",
+      "discord_name": "[ 🩸 ] Divine IV (18m)",
+      "role_id": 1055852197625221231,
+      "required_amount": 18000000
+    },
+    {
+      "id_name": "divine_five",
+      "discord_name": "[ 🩸 ] Divine V (20m)",
+      "role_id": 1055852199114190878,
+      "required_amount": 20000000
+    },
+    {
+      "id_name": "unreal",
+      "discord_name": "[  👀  ] UNREAL (20M+)",
+      "role_id": 1055852200691249212,
+      "required_amount": 25000000
+    }
+  ]
+}
