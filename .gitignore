@@ -169,4 +169,4 @@ cython_debug/
 data/settings.conf
 
 # Caches
-data/uuid.cache
+*.cache
