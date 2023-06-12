@@ -52,7 +52,7 @@ class TestCommandsCog(commands.GroupCog, name="test"):
             None
         """
         await interaction.response.defer(ephemeral=True)
-        is_allowed = ensure_bot_perms(interaction, send_denied_response=True)
+        is_allowed = await ensure_bot_perms(interaction, send_denied_response=True)
         if not is_allowed:
             return
 
