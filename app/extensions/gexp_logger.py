@@ -163,23 +163,31 @@ class GexpLogger(commands.Cog):
         try:
             _uuid = add_hyphens_to_uuid(member["uuid"])
             xp_history = member["expHistory"]
+
+            for date, amount in xp_history.items():
+                self.cursor.execute("SELECT * FROM expHistory WHERE uuid=? AND date=?", (_uuid, date))
+                result = self.cursor.fetchone()
+                # Result Example:
+                # (293237, 1686528186, '2023-06-11', '5328930e-d411-49cb-90ad-4e5c7b27dd86', 0)
+                # If result does not exist, result will be None
+                time_now = int(time.time())
+                if result is None:
+                    # Create Data
+                    self.cursor.execute("INSERT INTO expHistory (timestamp, date, uuid, amount) VALUES (?, ?, ?, ?)", (
+                            time_now, date, _uuid, amount))
+                else:
+                    # Ensure data is correct
+                    recorded_amount = result[4]
+                    if recorded_amount != amount:
+                        # Fix un-synced data
+                        self.cursor.execute("UPDATE expHistory SET timestamp=?, amount=? WHERE uuid=? AND date=?", (
+                            time_now, amount, _uuid, date))
+                    else:
+                        # Do nothing because data is correct
+                        pass
         except Exception as e:
             logging.fatal(f"Encountered fatal exception syncing exp history for {member}: {e}")
             return False
-
-        for date, amount in xp_history.items():
-            self.cursor.execute("SELECT * FROM expHistory WHERE uuid=? AND date=?", (_uuid, date))
-            result = self.cursor.fetchone()
-            time_now = int(time.time())
-            if result:
-                recorded_amount = result[4]  # Fetch the amount from the correct column
-                if recorded_amount != amount:
-                    self.cursor.execute("UPDATE expHistory SET timestamp=?, amount=? WHERE uuid=? AND date=?", (
-                        time_now, amount, _uuid, date))
-            else:
-                self.cursor.execute(
-                    "INSERT INTO expHistory (timestamp, date, uuid, amount) VALUES (?, ?, ?, ?)", (
-                        time_now, date, _uuid, amount))
         return True
 
     async def run_sync(self, interaction: discord.Interaction = None) -> None:
