@@ -4,12 +4,13 @@ for the test command and subcommands.
 
 Commands:
 - /test api-key (Admin Only)
+- /test log_channel (Admin Only)
 This command test the api key and
 returns an embed full of data
 
 Author: illyum
 """
-
+import datetime
 import time
 import discord
 import logging
@@ -40,7 +41,7 @@ class TestCommandsCog(commands.GroupCog, name="test"):
         self.local_data: local.LocalDataSingleton = local.LOCAL_DATA
 
     @app_commands.command(name="api-key", description="Tests the API Key and response time (Admin Only)")
-    async def my_sub_command_1(self, interaction: discord.Interaction) -> None:
+    async def api_key_test_command(self, interaction: discord.Interaction) -> None:
         """
         Tests the API Key and response time.
 
@@ -86,6 +87,51 @@ class TestCommandsCog(commands.GroupCog, name="test"):
             headers_embed.add_field(name="Failed Success", value=f"Cause: `{content.get('cause', None)}`", inline=False)
 
         await interaction.edit_original_response(embed=headers_embed)
+
+    @app_commands.command(name="bot-log", description="Tests the Bot Log Channel (Admin Only)")
+    async def log_channel_test_command(self, interaction: discord.Interaction) -> None:
+        """
+        Tests the Bot Log Channel in the discord server.
+
+        Parameters:
+            self
+            interaction (discord.Interaction): The interaction object representing the user's interaction.
+
+        Returns:
+            None
+        """
+        await interaction.response.defer(ephemeral=True)
+        is_allowed = await ensure_bot_perms(interaction, send_denied_response=True)
+        if not is_allowed:
+            return
+
+        logging.debug("Testing Log Channel")
+        server_id = self.local_data.config.get("bot", "server_id")
+        log_channel_id = self.local_data.config.get("channel_ids", "log_channel")
+        log_channel = self.bot.get_guild(server_id).get_channel(log_channel_id)
+        channel_status = "Error: Not Connected"
+        if log_channel is not None:
+            channel_status = "Connected"
+        response_embed = discord.Embed(colour=discord.Colour.gold(), title="Log Test")
+        response_embed.add_field(
+            name="Config Details:",
+            value=f"Server ID: {server_id}\n"
+                  f"Log Channel ID: {log_channel_id}"
+        )
+        response_embed.add_field(name="Log Channel Status:", value=channel_status)
+
+        log_test_embed = discord.Embed(
+            colour=discord.Colour.light_grey(),
+            title="Log Test!",
+            timestamp=datetime.datetime.now(),
+            description="This is to ensure the log channel is working!"
+        )
+
+        try:
+            await log_channel.send(embed=log_test_embed)
+        except Exception as e:
+            response_embed.add_field(name="Test Results:", value=f"Error: {e}")
+        await interaction.edit_original_response(embed=response_embed)
 
 
 async def setup(bot: commands.Bot) -> None:
