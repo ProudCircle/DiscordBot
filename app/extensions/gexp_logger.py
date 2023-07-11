@@ -52,14 +52,14 @@ class GexpLogger(commands.Cog):
         super().__init__(*args, **kwargs)
         self.bot = bot
         self.local_data = LOCAL_DATA.local_data
-        self.has_run = False
+        self.has_run: bool = False
         self.start_message = None
         self.start_time = None
         self.end_time = None
         self.task_id = None
-        self.is_running = False
-        self.server_id = self.local_data.config.get("bot", "server_id")
-        self.log_channel = self.local_data.config.get("channel_ids", "log_channel")
+        self.is_running: bool = False
+        self.server_id: int = int(self.local_data.config.get("bot", "server_id"))
+        self.log_channel: int = int(self.local_data.config.get("channel_ids", "log_channel"))
         self.cursor = self.local_data.gexp_db.cursor
         self.sync_gexp_task.start()
 
