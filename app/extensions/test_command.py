@@ -108,20 +108,21 @@ class TestCommandsCog(commands.GroupCog, name="test"):
         logging.debug("Testing Log Channel")
         server_id = self.local_data.config.get("bot", "server_id")
         log_channel_id = self.local_data.config.get("channel_ids", "log_channel")
-        server = self.bot.get_guild(server_id)
+        server = self.bot.get_guild(int(server_id))
         log_channel = None
         if server is not None:
-            log_channel = server.get_channel(log_channel_id)
+            log_channel = server.get_channel(int(log_channel_id))
         channel_status = "Error: Not Connected"
         if log_channel is not None:
             channel_status = "Connected"
         response_embed = discord.Embed(colour=discord.Colour.gold(), title="Log Test")
         response_embed.add_field(
             name="Config Details:",
-            value=f"Server ID: {server_id}\n"
-                  f"Log Channel ID: {log_channel_id}"
+            value=f"Server ID: `{server_id}`\n"
+                  f"Log Channel ID: `{log_channel_id}`",
+            inline=False
         )
-        response_embed.add_field(name="Log Channel Status:", value=channel_status)
+        response_embed.add_field(name="Log Channel Status:", value=channel_status, inline=False)
 
         log_test_embed = discord.Embed(
             colour=discord.Colour.light_grey(),
