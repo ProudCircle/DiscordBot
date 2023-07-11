@@ -108,7 +108,10 @@ class TestCommandsCog(commands.GroupCog, name="test"):
         logging.debug("Testing Log Channel")
         server_id = self.local_data.config.get("bot", "server_id")
         log_channel_id = self.local_data.config.get("channel_ids", "log_channel")
-        log_channel = self.bot.get_guild(server_id).get_channel(log_channel_id)
+        server = self.bot.get_guild(server_id)
+        log_channel = None
+        if server is not None:
+            log_channel = server.get_channel(log_channel_id)
         channel_status = "Error: Not Connected"
         if log_channel is not None:
             channel_status = "Connected"
