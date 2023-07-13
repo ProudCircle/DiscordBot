@@ -24,7 +24,7 @@ async def ensure_bot_perms(interaction: discord.Interaction, send_denied_respons
 	if user.guild_permissions.administrator:
 		return True
 
-	admin_role_id = LOCAL_DATA.local_data.config.get("role_ids", "bot_admin")
+	admin_role_id = int(LOCAL_DATA.local_data.config.get("role_ids", "bot_admin"))
 	if admin_role_id is None:
 		if send_denied_response:
 			await interaction.response.send_message(embed=InsufficientPermissionsEmbed())
