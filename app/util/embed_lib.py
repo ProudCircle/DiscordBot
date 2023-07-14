@@ -176,6 +176,13 @@ class SuccessfullyForceLinkedEmbed(discord.Embed):
         self.description = f"Successfully linked {username} to `{member.name}#{member.discriminator}`"
 
 
+class SuccessfullyForceUnlinkedEmbed(discord.Embed):
+    def __init__(self, playername):
+        super().__init__()
+        self.colour = discord.Colour(0x0c70f2)
+        self.description = f"Successfully unlinked `{playername}`"
+
+
 class DivisionUpdateFinishWebhookEmbed(discord.Embed):
     def __init__(self, members_updated_count: int, errors: int):
         super().__init__()
