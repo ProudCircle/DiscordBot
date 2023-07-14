@@ -5,7 +5,7 @@ for the test command and subcommands.
 Commands:
 - /test api-key (Admin Only)
 - /test log_channel (Admin Only)
-This command test the api key and
+This command tests the api key and
 returns an embed full of data
 
 Author: illyum
