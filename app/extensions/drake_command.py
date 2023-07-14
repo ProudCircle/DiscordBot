@@ -2,19 +2,19 @@ import os
 import discord
 import logging
 
+from util import local
 from discord.ext import commands
 from discord import app_commands
 from PIL import Image, ImageDraw, ImageFont
-
-import util.local
 
 
 class DrakeMeme(commands.Cog):
 	def __init__(self, bot: commands.Bot, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.bot = bot
-		self.template_url = os.path.join(util.local.IMAGES_FOLDER_PATH, 'drake_template.png')
-		self.font_path = os.path.join(util.local.FONTS_FOLDER_PATH, 'arial.ttf')
+		self.local_data: local.LocalDataSingleton = local.LOCAL_DATA
+		self.template_url = os.path.join(local.IMAGES_FOLDER, 'drake_template.png')
+		self.font_path = os.path.join(local.IMAGES_FOLDER, 'arial.ttf')
 
 	@app_commands.command(name="drake", description="Make drake meme")
 	@app_commands.describe(lesser="Text that goes on top")
@@ -44,7 +44,7 @@ class DrakeMeme(commands.Cog):
 		template.paste(text_image, (0, 0), text_image)
 
 		# Save the generated meme image
-		meme_file_path = os.path.join(util.local.IMAGES_FOLDER_PATH, "tmp/meme.png")
+		meme_file_path = os.path.join(local.IMAGES_FOLDER, "tmp/meme.png")
 		template.save(meme_file_path, format='PNG')
 
 		# Send the meme image as a message in the Discord channel
