@@ -199,13 +199,26 @@ class TomlConfig:
             default_config = {'bot': ['token']}
         self.path: str = config_path
         self.default_config: Dict[Any] = default_config
-        if os.path.exists(config_path):
-            self.config = toml.load(config_path)
+        self.load_config()
+        logging.debug("Complete!")
+
+    def load_config(self):
+        """
+        Load the configuration from the specified path.
+
+        If the configuration file exists at the specified path, it is loaded using the toml.load function.
+        If the file does not exist, an empty configuration dictionary is created and default configuration
+        values are generated. The resulting configuration is then saved to the file.
+
+        Returns:
+            None
+        """
+        if os.path.exists(self.path):
+            self.config = toml.load(self.path)
         else:
             self.config = {}
             self._generate_default_config()
             self._save_config()
-        logging.debug("Complete!")
 
     def set(self, section, key, value) -> None:
         """
@@ -229,6 +242,7 @@ class TomlConfig:
             value = "null"
         self.config[section][key] = value
         self._save_config()
+        self.load_config()
 
     def get(self, section, key) -> Union[str, int, bool, None]:
         """
