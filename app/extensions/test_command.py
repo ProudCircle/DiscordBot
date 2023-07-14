@@ -139,4 +139,5 @@ class TestCommandsCog(commands.GroupCog, name="test"):
 
 
 async def setup(bot: commands.Bot) -> None:
+    logging.debug("Adding cog: TestCommand")
     await bot.add_cog(TestCommandsCog(bot))
