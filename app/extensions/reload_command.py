@@ -1,6 +1,6 @@
 """
 This cog handles all the logic and functionality
-for the test command and subcommands.
+for the reload command and subcommands.
 
 Commands:
 - /reload config (Admin Only)
