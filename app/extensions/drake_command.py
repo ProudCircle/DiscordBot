@@ -14,7 +14,7 @@ class DrakeMeme(commands.Cog):
 		self.bot = bot
 		self.local_data: local.LocalDataSingleton = local.LOCAL_DATA
 		self.template_url = os.path.join(local.IMAGES_FOLDER, 'drake_template.png')
-		self.font_path = os.path.join(local.IMAGES_FOLDER, 'arial.ttf')
+		self.font_path = os.path.join(local.FONTS_FOLDER, 'arial.ttf')
 
 	@app_commands.command(name="drake", description="Make drake meme")
 	@app_commands.describe(lesser="Text that goes on top")
