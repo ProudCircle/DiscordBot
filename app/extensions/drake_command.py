@@ -1,4 +1,5 @@
 import os
+import math
 import discord
 import logging
 
@@ -33,12 +34,30 @@ class DrakeMeme(commands.Cog):
 		y = (text_image.height - text_size[1]) // 4
 		draw.text((x, y), lesser, font=font, fill=(0, 0, 0, 255))
 
-		# Draw the "greater" text on the bottom half of the image
-		text_size = draw.textsize(greater, font=font)
-		x_center = (text_image.width - text_size[0]) // 2
-		x = x_center + (text_image.width / 4)
-		y = (text_image.height * 3 // 4) - text_size[1] // 2
-		draw.text((x, y), greater, font=font, fill=(0, 0, 0, 255))
+		# Calculate the maximum characters per line based on the template width and font size
+		max_chars_per_line = math.floor((text_image.width / 2) / (text_size[0] / len(lesser)))
+
+		# Split the "greater" text into two lines if it exceeds the maximum characters per line
+		if len(greater) > max_chars_per_line:
+			# Find the index of the last space character within the limit
+			split_index = max_chars_per_line - greater[max_chars_per_line::-1].find(' ')
+
+			# Split the text into two lines
+			greater_line1 = greater[:split_index].strip()
+			greater_line2 = greater[split_index:].strip()
+
+			# Draw the first line of "greater" text
+			await self.draw_text(draw, font, greater, text_image)
+
+			# Draw the second line of "greater" text
+			text_size = draw.textsize(greater_line2, font=font)
+			x_center = (text_image.width - text_size[0]) // 2
+			x = x_center + (text_image.width / 4)
+			y = (text_image.height * 3 // 4) + text_size[1] // 2
+			draw.text((x, y), greater_line2, font=font, fill=(0, 0, 0, 255))
+		else:
+			# Draw the "greater" text on the bottom half of the image (single line)
+			await self.draw_text(draw, font, greater, text_image)
 
 		# Merge the template and text images
 		template.paste(text_image, (0, 0), text_image)
@@ -49,6 +68,13 @@ class DrakeMeme(commands.Cog):
 
 		# Send the meme image as a message in the Discord channel
 		await interaction.response.send_message(file=discord.File(meme_file_path, 'meme.png'))
+
+	async def draw_text(self, draw, font, greater, text_image):
+		text_size = draw.textsize(greater, font=font)
+		x_center = (text_image.width - text_size[0]) // 2
+		x = x_center + (text_image.width / 4)
+		y = (text_image.height * 3 // 4) - text_size[1] // 2
+		draw.text((x, y), greater, font=font, fill=(0, 0, 0, 255))
 
 
 async def setup(bot: commands.Bot):
