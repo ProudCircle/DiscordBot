@@ -35,7 +35,7 @@ class DrakeMeme(commands.Cog):
 		draw.text((x, y), lesser, font=font, fill=(0, 0, 0, 255))
 
 		# Calculate the maximum characters per line based on the template width and font size
-		max_chars_per_line = math.floor((text_image.width / 2) / (text_size[0] / len(lesser)))
+		max_chars_per_line = 30
 
 		# Split the "greater" text into two lines if it exceeds the maximum characters per line
 		if len(greater) > max_chars_per_line:
