@@ -32,7 +32,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
         uuid = None
         cache_player = self.local_data.uuid_cache.get_entry(player)
         if cache_player.is_alive:
-            uuid = cache_player.uuid
+            uuid = mcign.dash_uuid(cache_player.uuid)
         else:
             mojang_player = MCIGN(player).uuid
             if mojang_player is None:
