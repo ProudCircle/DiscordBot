@@ -20,7 +20,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
     @app_commands.describe(player="Player to query data for")
     async def daily_command(self, interaction: discord.Interaction, player: str = None) -> None:
         logging.debug(f"User {interaction.user.id} ran command '/gexp daily'")
-        await interaction.defer()
+        await interaction.response.defer()
 
         if player is None:
             discord_link = self.local_data.discord_link.get_link(interaction.user.id)
