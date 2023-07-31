@@ -38,7 +38,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
             if mojang_player is None:
                 await interaction.edit_original_response(embed=embed_lib.InvalidMojangUserEmbed(player=player))
                 return
-            uuid = mojang_player
+            uuid = mcign.dash_uuid(mojang_player)
 
         date_today = datetime.today().strftime("%Y-%m-%d")
         cursor = self.local_data.gexp_db.cursor
