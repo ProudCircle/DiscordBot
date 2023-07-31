@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from util import embed_lib
+from util import embed_lib, mcign
 from util.mcign import MCIGN
 from util.local import LOCAL_DATA
 
@@ -24,7 +24,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
 
         if player is None:
             discord_link = self.local_data.discord_link.get_link(interaction.user.id)
-            player = discord_link.uuid
+            player = mcign.dash_uuid(discord_link.uuid)
             if discord_link is None:
                 await interaction.edit_original_response(embed=embed_lib.InvalidArgumentEmbed())
                 return
