@@ -53,3 +53,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
         await interaction.edit_original_response(
             embed=embed_lib.DailyGexpEmbed(uuid, uuid, result[1], result[0]))
 
+
+async def setup(bot: commands.Bot):
+    logging.debug("Adding Cog: Gexp Command")
+    await bot.add_cog(GexpCommand(bot))
