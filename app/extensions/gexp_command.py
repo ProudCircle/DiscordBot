@@ -73,7 +73,7 @@ class GexpCommand(commands.GroupCog, name="gexp"):
         await self.send_daily_gexp_response(interaction, uuid, gexp_today, date_today)
         return True
 
-    async def get_daily_gexp(self, uuid: str, date: str) -> int:
+    def get_daily_gexp(self, uuid: str, date: str) -> int:
         cursor = self.local_data.gexp_db.cursor
         cmd = "SELECT date, amount FROM expHistory WHERE (uuid = ?) AND (date = ?)"
         query = cursor.execute(cmd, (uuid, date))
