@@ -8,7 +8,14 @@ from discord import app_commands
 
 from util import embed_lib, mcign
 from util.mcign import MCIGN
-from util.local import LOCAL_DATA
+from util.local import LOCAL_DATA, _DiscordLink
+
+
+class GexpPlayer:
+    def __init__(self, displayname: str, uuid: str, gexp_value: int):
+        self.displayname = displayname
+        self.uuid = uuid
+        self.gexp_value = gexp_value
 
 
 class GexpCommand(commands.GroupCog, name="gexp"):
@@ -22,14 +29,16 @@ class GexpCommand(commands.GroupCog, name="gexp"):
         user_id = interaction.user.id
         logging.debug(f"User {user_id} ran command '/gexp daily'")
         await interaction.response.defer()
+        uuid = None
 
         if player is None:
             player = await self.get_default_player(user_id)
             if player is None:
                 await self.send_invalid_argument_response(interaction)
                 return
+            else:
+                uuid = player.uuid
 
-        uuid = await self.get_uuid(player)
         if uuid is None:
             await self.send_invalid_mojang_user_response(interaction, player)
             return
@@ -43,10 +52,10 @@ class GexpCommand(commands.GroupCog, name="gexp"):
 
         await self.send_daily_gexp_response(interaction, uuid, gexp_today, date_today)
 
-    async def get_default_player(self, user_id: int) -> str:
-        discord_link = self.local_data.discord_link.get_link(user_id)
+    async def get_default_player(self, user_id: int) -> _DiscordLink:
+        discord_link: _DiscordLink = self.local_data.discord_link.get_link(user_id)
         if discord_link:
-            return mcign.dash_uuid(discord_link.uuid)
+            return discord_link
         return None
 
     async def get_uuid(self, player: str) -> str:

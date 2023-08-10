@@ -23,7 +23,8 @@ class PingCommand(commands.Cog):
     @app_commands.command(name="ping", description="Check if the bot is alive")
     async def ping(self, interaction: discord.Interaction):
         alive_embed = discord.Embed(description="Pong", colour=discord.Colour(0xeb07a6))
-        await interaction.response.send_message(embed=alive_embed)
+        # await interaction.response.send_message(embed=alive_embed)
+        await interaction.response.send_message("@360541203751763970 hello!")
 
     @app_commands.command(name="alive", description="Check if the bot is alive")
     async def ping(self, interaction: discord.Interaction):
