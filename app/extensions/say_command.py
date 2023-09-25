@@ -23,8 +23,8 @@ class SayCommand(commands.Cog):
     @app_commands.describe(message="The message for the bot to repeat")
     async def ping(self, interaction: discord.Interaction, message: str):
         alive_embed = discord.Embed(description="Sending Message...", colour=discord.Colour(0xeb07a6))
-        await interaction.channel.send(content=message)
         await interaction.response.send_message(embed=alive_embed, ephemeral=True)
+        await interaction.channel.send(content=message)
 
 
 async def setup(bot: commands.Bot):
