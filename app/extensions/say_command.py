@@ -26,12 +26,6 @@ class SayCommand(commands.Cog):
         await interaction.channel.send(content=message)
         await interaction.response.send_message(embed=alive_embed, ephemeral=True)
 
-    @app_commands.command(name="alive", description="Check if the bot is alive")
-    async def ping(self, interaction: discord.Interaction):
-        alive_embed = discord.Embed(description="I'm alive!", colour=discord.Colour(0xeb07a6))
-        await interaction.response.send_message(embed=alive_embed)
-
-
 async def setup(bot: commands.Bot):
     logging.debug("Adding cog: Say command")
     await bot.add_cog(SayCommand(bot))
