@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 public class SettingsConf {
     public SettingsConfLoader Loader { get; set; }
     [JsonProperty("token")] public string Token { get; private set; }
+    [JsonProperty("api-key")] public string ApiKey { get; private set; }
 }
 
 public class SettingsConfLoader {
