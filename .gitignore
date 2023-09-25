@@ -172,5 +172,5 @@ data/settings.conf
 *.cache
 
 # CS Stuff
-.bin/
-.obj/
+bin/
+obj/
