@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <Version>0.0.1</Version>
+        <Title>Proud Circle Guild Discord Bot</Title>
+        <Authors>itzilly, illyum</Authors>
+        <Description>A Discord Bot for the Proud Circle Hypixel Guild</Description>
+        <Copyright>2023 illyum</Copyright>
+        <PackageProjectUrl>https://github.com/ProudCircle</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/ProudCircle/DiscordBot/blob/main/LICENSE</PackageLicenseUrl>
+        <PackageIcon>data\images\logo.png</PackageIcon>
+        <RepositoryUrl>https://github.com/ProudCircle/DiscordBot</RepositoryUrl>
+        <RepositoryType>Github</RepositoryType>
+        <Company>Proud Circle</Company>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <OutputPath>out\bin\Debug\</OutputPath>
+      <PlatformTarget>x64</PlatformTarget>
+      <DebugSymbols>false</DebugSymbols>
+      <DocumentationFile>bin\Debug\DiscordBot.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <OutputPath>out\bin\Release\</OutputPath>
+      <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+      <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Update="data\images\logo.png">
+        <Pack>True</Pack>
+        <PackagePath></PackagePath>
+      </None>
+    </ItemGroup>
+
+</Project>
