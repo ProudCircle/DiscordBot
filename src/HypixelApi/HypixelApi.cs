@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
 
+namespace DiscordBot.HypixelApi;
+
 public class HypixelApi {
     private String _apiKey;
     private int rateLimitRemaining;
