@@ -23,7 +23,7 @@
       <OutputPath>out\bin\Debug\</OutputPath>
       <PlatformTarget>x64</PlatformTarget>
       <DebugSymbols>false</DebugSymbols>
-      <DocumentationFile>bin\Debug\DiscordBot.xml</DocumentationFile>
+      <DocumentationFile></DocumentationFile>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -37,6 +37,17 @@
         <Pack>True</Pack>
         <PackagePath></PackagePath>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="DSharpPlus.CommandsNext" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="DSharpPlus.Lavalink" Version="5.0.0-nightly-01735" />
+      <PackageReference Include="DSharpPlus.Rest" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="DSharpPlus.VoiceNext" Version="5.0.0-nightly-01766" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
 </Project>
