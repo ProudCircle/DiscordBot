@@ -26,6 +26,7 @@ class SayCommand(commands.Cog):
         await interaction.channel.send(content=message)
         await interaction.response.send_message(embed=alive_embed, ephemeral=True)
 
+
 async def setup(bot: commands.Bot):
-    logging.debug("Adding cog: Say command")
+    logging.debug("Adding cog: SayCommand")
     await bot.add_cog(SayCommand(bot))
