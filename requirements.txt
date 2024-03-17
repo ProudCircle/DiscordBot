@@ -1,5 +1,5 @@
 aiohttp~=3.8.3
-discord.py
+discord.py @ git+https://github.com/Rapptz/discord.py@0e016be42ca4f34bb89761261a1c7c12f4cc8c48#egg=discord.py
 pytz==2022.1
 requests~=2.28.0
 tools==0.1.9
