@@ -170,3 +170,9 @@ data/settings.conf
 
 # Caches
 *.cache
+
+# Temporary image files
+data/images/tmp/*
+
+# Python VENV version
+.python-version
