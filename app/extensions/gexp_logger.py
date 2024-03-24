@@ -271,7 +271,7 @@ class GexpLogger(commands.Cog):
             logging.warning(f"Unable to alert staff of an error: {e}")
             return
 
-    @tasks.loop(minutes=15)
+    @tasks.loop(minutes=60)
     async def sync_gexp_task(self) -> None:
         """
         Background task for periodically running the synchronization process.
